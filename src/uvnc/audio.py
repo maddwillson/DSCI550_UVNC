@@ -1,14 +1,17 @@
 """Convert one audio channel into minute-by-band linear power.
 
 Owner: Joshua Lee.
-The procedure matches ``minute_band_power`` in the starter notebook.
-Use it on a permitted recording such as VTUAD. Do not commit the audio.
+``minute_band_power`` matches the starter notebook. ``passage_pattern``
+cuts that result to the 15 minutes around the loudest minute. Use both on
+a permitted recording such as VTUAD. Do not commit the audio.
 """
 
 import numpy as np
 from scipy.signal import periodogram
 
 from uvnc.passage import third_octave_centres
+
+_PASSAGE_MINUTES = 15
 
 
 def minute_band_power(samples, sample_rate_hz):
@@ -64,3 +67,53 @@ def minute_band_power(samples, sample_rate_hz):
         if high <= sample_rate / 2 and bins.any():
             power[:, band] = psd[:, bins].sum(axis=1) * bin_width
     return power.reshape(n_minutes, 30, centres.size).mean(axis=1)
+
+
+def passage_pattern(samples, sample_rate_hz):
+    """Return a 15-minute passage centered on the loudest minute.
+
+    The finite cells of the returned pattern sum to 1. Missing bands stay
+    missing. When the loudest minute is near either end, the 15-minute span
+    slides inside the recording and ``closest_minute`` says where that
+    minute sits in the span. A tie uses the earlier minute.
+
+    Parameters
+    ----------
+    samples : array-like
+        One finite channel, long enough for 15 complete minutes.
+    sample_rate_hz : int or float
+        The recording's integer sample rate in hertz.
+
+    Returns
+    -------
+    tuple
+        ``(pattern, closest_minute)``. ``pattern`` has shape ``(15, 25)``.
+        ``closest_minute`` is 1-based.
+    """
+    power = minute_band_power(samples, sample_rate_hz)
+    return _pattern_around_loudest(power)
+
+
+def _pattern_around_loudest(power):
+    """Cut and scale a minute-band array around its loudest minute."""
+    band_power = np.asarray(power, dtype=np.float64)
+    if band_power.ndim != 2 or band_power.shape[1] != third_octave_centres().size:
+        raise ValueError("power must have shape (n_minutes, 25).")
+    n_minutes = band_power.shape[0]
+    if n_minutes < _PASSAGE_MINUTES:
+        raise ValueError("A passage needs 15 complete minutes.")
+    minute_energy = np.nansum(band_power, axis=1)
+    if not np.isfinite(minute_energy).any() or np.nanmax(minute_energy) <= 0:
+        raise ValueError("The recording has no positive band power.")
+    peak = int(np.nanargmax(minute_energy))
+    half_before = _PASSAGE_MINUTES // 2
+    start = min(max(peak - half_before, 0), n_minutes - _PASSAGE_MINUTES)
+    window = band_power[start : start + _PASSAGE_MINUTES]
+    finite = np.isfinite(window)
+    total = window[finite].sum()
+    if total <= 0:
+        raise ValueError("The passage window has no positive band power.")
+    pattern = np.full(window.shape, np.nan)
+    pattern[finite] = window[finite] / total
+    closest_minute = peak - start + 1
+    return pattern, closest_minute

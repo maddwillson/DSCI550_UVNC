@@ -7,7 +7,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from uvnc.audio import minute_band_power
+from uvnc.audio import _pattern_around_loudest, minute_band_power, passage_pattern
 from uvnc.passage import third_octave_centres
 
 
@@ -46,8 +46,55 @@ def test_a_short_recording_is_rejected():
     raise AssertionError("a recording under one minute should be rejected")
 
 
+def _rising_passage(sample_rate_hz):
+    """Fifteen minutes of a 100 Hz tone, loudest at minute 8."""
+    chunks = []
+    for minute in range(1, 16):
+        gain = np.exp(-0.5 * ((minute - 8) / 2.0) ** 2)
+        time = np.arange(sample_rate_hz * 60) / sample_rate_hz
+        chunks.append(gain * np.sin(2 * np.pi * 100.0 * time))
+    return np.concatenate(chunks)
+
+
+def test_passage_pattern_centers_on_the_loudest_minute():
+    sample_rate = 2000
+    pattern, closest_minute = passage_pattern(_rising_passage(sample_rate), sample_rate)
+    assert pattern.shape == (15, 25)
+    assert closest_minute == 8
+    finite = np.isfinite(pattern)
+    assert abs(pattern[finite].sum() - 1.0) < 1e-12
+    assert np.all(pattern[finite] >= 0)
+    assert np.isnan(pattern[:, -1]).all()
+    centres = third_octave_centres()
+    assert centres[int(np.nanargmax(pattern[closest_minute - 1]))] == 100.0
+    minute_energy = np.nansum(pattern, axis=1)
+    assert int(np.nanargmax(minute_energy)) == closest_minute - 1
+
+
+def test_passage_window_slides_at_the_edges():
+    power = np.zeros((20, 25))
+    power[0, 0] = 5.0
+    pattern, closest = _pattern_around_loudest(power)
+    assert pattern.shape == (15, 25)
+    assert closest == 1
+    power[-1, 0] = 9.0
+    _, closest = _pattern_around_loudest(power)
+    assert closest == 15
+
+
+def test_a_recording_under_15_minutes_is_rejected():
+    try:
+        passage_pattern(_tone(100.0, 2000, 1), 2000)
+    except ValueError:
+        return
+    raise AssertionError("a passage needs 15 complete minutes")
+
+
 if __name__ == "__main__":
     test_one_minute_tone_peaks_in_its_band()
     test_a_partial_minute_is_dropped()
     test_a_short_recording_is_rejected()
+    test_passage_pattern_centers_on_the_loudest_minute()
+    test_passage_window_slides_at_the_edges()
+    test_a_recording_under_15_minutes_is_rejected()
     print("audio checks passed")
