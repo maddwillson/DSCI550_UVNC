@@ -29,6 +29,10 @@ The other files in `tests/` run the same way. Open `notebooks/labeled_window_dem
 - `vessel_share` is the training label `share_added_vessel`. It is the sum of added linear energy divided by the sum of mixture linear energy, over the same observed minute-band cells. A missing minute drops out of both sums. Call `vessel_share` again after `mask_random_minutes`.
 - Build training backgrounds from the South African site files. `Test.csv` is for final predictions and for checking the 375-column layout. Fit scalers, PCA, k-means, and models on training rows.
 
+## VTUAD
+
+One check used fishing clip `40.wav` from `vtuad_wav_fishing.zip` in VTUAD version v1.3.3, [10.5281/zenodo.23773305](https://doi.org/10.5281/zenodo.23773305), licence CC BY 4.0. The recordings come from Ocean Networks Canada, also CC BY 4.0. On that clip `passage_pattern` returned shape `(15, 25)`, closest minute 13, and the finite cells summed to 1. Download the wav outside this repo and do not commit it.
+
 ## Owners
 
 | Person | Module | What to implement |
