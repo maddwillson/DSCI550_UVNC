@@ -27,7 +27,8 @@ branch is pushed. Everyone still shares the report and the presentation.
 Call these functions rather than reaching into another person's file:
 
 - Pragya's clean windows should use the same column names as `Test.csv`, plus a site id. Joshua will pass that table to `windows_from_frame`.
-- Madeleine should take the `(n, 15, 25)` array from `windows_from_frame` and return one feature row per window.
-- Levi should take Madeleine's feature matrix and the `share_added_vessel` labels. Hold out whole sites in cross-validation.
+- Madeleine and Levi should call `build_labeled_window`. It returns the masked mixture in decibels, the `share_added_vessel` label, and metadata with the seed, closest-approach minute, and dropped minutes.
+- Madeleine should turn those windows into one feature row each.
+- Levi should take Madeleine's feature matrix and the shares. Hold out whole sites in cross-validation.
 
 `score_added_vessel` is Levi's diagnostic column. Its leaderboard weight is zero.
