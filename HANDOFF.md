@@ -14,6 +14,7 @@ branch is pushed. Everyone still shares the report and the presentation.
 - Add energy only after `db_to_linear`. The conversion is `10 ** (dB / 10)`. Convert back with `linear_to_db`.
 - `minute_band_power` turns one audio channel into minute-by-band linear power, shape `(minutes, 25)`. A band that reaches past the Nyquist rate stays NaN. A trailing partial minute is dropped. Keep VTUAD files out of git.
 - `passage_pattern` keeps the 15 minutes around the loudest minute. Its finite cells sum to 1, and the returned minute number is the closest approach inside that span.
+- `mix_pattern` adds that pattern times `added_energy` in linear power. A missing background cell stays missing, and passage energy on that cell is left out of both sums.
 - `vessel_share` is the training label `share_added_vessel`. It is the sum of added linear energy divided by the sum of mixture linear energy, over the same observed minute-band cells. A missing minute drops out of both sums. Call `vessel_share` again after `mask_random_minutes`.
 - Build training backgrounds from the South African site files. `Test.csv` is for final predictions and for checking the 375-column layout. Fit scalers, PCA, k-means, and models on training rows.
 

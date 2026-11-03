@@ -33,8 +33,7 @@ def mix_passage(background_db, envelope, spectrum, added_energy):
         Shape ``(n_minutes,)``. Minute weights from ``passage_envelope``.
         Must sum to 1.
     spectrum : numpy.ndarray
-        Shape ``(25,)``. Band weights from ``ship_spectrum`` or a converted
-        VTUAD clip. Must sum to 1.
+        Shape ``(25,)``. Band weights from ``ship_spectrum``. Must sum to 1.
     added_energy : float
         Total linear passage power assigned across the full window.
 
@@ -50,11 +49,47 @@ def mix_passage(background_db, envelope, spectrum, added_energy):
     n_minutes = background.shape[0]
     minute_weights = _require_distribution("envelope", envelope, n_minutes)
     band_weights = _require_distribution("spectrum", spectrum, _N_BANDS)
+    weights = np.outer(minute_weights, band_weights)
+    return mix_pattern(background, weights, added_energy)
+
+
+def mix_pattern(background_db, pattern, added_energy):
+    """Add a full minute-by-band passage pattern to a background window.
+
+    ``pattern`` is the ``(n_minutes, 25)`` array from ``passage_pattern``,
+    or the outer product of an envelope and a spectrum. Its finite weights
+    sum to 1. ``added_energy`` scales that pattern in linear power. A
+    missing background cell stays missing, and any passage energy on that
+    cell is left out of the window. A missing band in the pattern adds no
+    passage energy there and leaves the background level in place.
+
+    Parameters
+    ----------
+    background_db : numpy.ndarray
+        Shape ``(n_minutes, 25)``. Decibel band levels. NaN is missing.
+    pattern : numpy.ndarray
+        Same shape as ``background_db``. Finite weights are nonnegative
+        and sum to 1.
+    added_energy : float
+        Total linear passage power assigned across the finite pattern cells.
+
+    Returns
+    -------
+    numpy.ndarray
+        Mixture in decibels, same shape as ``background_db``. Missing
+        background cells stay NaN.
+    """
+    background = np.asarray(background_db, dtype=np.float64)
+    if background.ndim != 2 or background.shape[1] != _N_BANDS:
+        raise ValueError("background_db must have shape (n_minutes, 25).")
+    weights = _require_pattern(pattern, background.shape)
     energy = _require_energy(added_energy)
-    pattern = energy * np.outer(minute_weights, band_weights)
+    added = np.zeros(background.shape, dtype=np.float64)
+    finite = np.isfinite(weights)
+    added[finite] = energy * weights[finite]
     observed = np.isfinite(background)
     background_linear = db_to_linear(background)
-    mixture_linear = np.where(observed, background_linear + pattern, np.nan)
+    mixture_linear = np.where(observed, background_linear + added, np.nan)
     return linear_to_db(mixture_linear)
 
 
@@ -135,6 +170,18 @@ def _require_distribution(name, values, length):
         raise ValueError(f"{name} must be finite and nonnegative.")
     if abs(weights.sum() - 1.0) > 1e-8:
         raise ValueError(f"{name} must sum to 1.")
+    return weights
+
+
+def _require_pattern(pattern, shape):
+    weights = np.asarray(pattern, dtype=np.float64)
+    if weights.shape != shape:
+        raise ValueError(f"pattern must have shape {shape}.")
+    finite = np.isfinite(weights)
+    if not finite.any() or np.any(weights[finite] < 0):
+        raise ValueError("pattern weights must be finite somewhere and nonnegative.")
+    if abs(weights[finite].sum() - 1.0) > 1e-8:
+        raise ValueError("pattern finite weights must sum to 1.")
     return weights
 
 
