@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from uvnc.mixing import mask_random_minutes, mix_passage, vessel_share
 from uvnc.passage import passage_envelope, ship_spectrum
-from uvnc.pipeline import build_labeled_window
+from uvnc.pipeline import build_labeled_window, build_labeled_windows
 
 
 def test_entry_point_matches_the_separate_steps():
@@ -89,9 +89,68 @@ def test_same_seed_blanks_the_same_minutes():
         assert np.isnan(first[minute - 1]).all()
 
 
+def test_a_stack_matches_one_window_at_a_time():
+    backgrounds = np.stack([
+        np.full((15, 25), 40.0),
+        np.full((15, 25), 55.0),
+        np.zeros((15, 25)),
+    ])
+    mixtures, shares, metadata = build_labeled_windows(
+        backgrounds,
+        closest_minutes=[4, 8, 12],
+        added_energies=30.0,
+        seeds=[1, 2, 3],
+        n_drops=2,
+    )
+    assert mixtures.shape == (3, 15, 25)
+    assert shares.shape == (3,)
+    assert len(metadata) == 3
+    for index in range(3):
+        mixture, share, info = build_labeled_window(
+            backgrounds[index],
+            closest_minute=int([4, 8, 12][index]),
+            added_energy=30.0,
+            seed=index + 1,
+            n_drop=2,
+        )
+        assert np.allclose(mixtures[index], mixture, equal_nan=True)
+        assert shares[index] == share
+        assert metadata[index] == info
+
+
+def test_a_stack_can_mix_one_recording_pattern():
+    backgrounds = np.zeros((2, 15, 25))
+    patterns = np.stack([
+        np.outer(passage_envelope(15, 8), ship_spectrum()),
+        np.outer(passage_envelope(15, 3), ship_spectrum()),
+    ])
+    mixtures, shares, metadata = build_labeled_windows(
+        backgrounds,
+        closest_minutes=[8, 3],
+        added_energies=[10.0, 20.0],
+        seeds=5,
+        n_drops=0,
+        patterns=patterns,
+    )
+    for index, energy in enumerate([10.0, 20.0]):
+        mixture, share, info = build_labeled_window(
+            backgrounds[index],
+            closest_minute=int([8, 3][index]),
+            added_energy=energy,
+            seed=5,
+            n_drop=0,
+            pattern=patterns[index],
+        )
+        assert np.allclose(mixtures[index], mixture, equal_nan=True)
+        assert shares[index] == share
+        assert metadata[index] == info
+
+
 if __name__ == "__main__":
     test_entry_point_matches_the_separate_steps()
     test_a_separable_pattern_matches_the_fallback()
     test_pattern_keeps_the_closest_minute_the_caller_passed()
     test_same_seed_blanks_the_same_minutes()
+    test_a_stack_matches_one_window_at_a_time()
+    test_a_stack_can_mix_one_recording_pattern()
     print("pipeline checks passed")
