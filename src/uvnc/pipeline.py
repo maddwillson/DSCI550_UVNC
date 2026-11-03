@@ -2,24 +2,30 @@
 
 Owner: Joshua Lee.
 ``build_labeled_window`` is the function Madeleine and Levi should call.
-It keeps the seed, the closest-approach minute, and the dropped minutes
-with the returned window.
+Pass a ``pattern`` from ``passage_pattern`` to mix a recording. Leave it
+out to use the fallback envelope and ship spectrum. The seed, the
+closest-approach minute, and the dropped minutes come back with the window.
 """
 
 import numpy as np
 
-from uvnc.mixing import mask_random_minutes, mix_passage, vessel_share
+from uvnc.mixing import mask_random_minutes, mix_passage, mix_pattern, vessel_share
 from uvnc.passage import passage_envelope, ship_spectrum
 
 _N_BANDS = 25
 
 
-def build_labeled_window(background_db, closest_minute, added_energy, seed, n_drop):
+def build_labeled_window(
+    background_db, closest_minute, added_energy, seed, n_drop, pattern=None
+):
     """Mix a passage into a background and label the observed energy share.
 
     The background must come from the South African site files, not from
     ``Test.csv``. Minutes are 1-based. The same ``seed`` and ``n_drop``
-    blank the same minutes on every run.
+    blank the same minutes on every run. Leave ``pattern`` unset to build
+    the fallback passage from ``closest_minute``. Pass the array from
+    ``passage_pattern`` to mix that recording instead. ``closest_minute``
+    is stored as given. It is not read off the pattern.
 
     Parameters
     ----------
@@ -33,6 +39,9 @@ def build_labeled_window(background_db, closest_minute, added_energy, seed, n_dr
         Seed for the minute mask.
     n_drop : int
         How many whole minutes to blank after mixing.
+    pattern : numpy.ndarray, optional
+        Shape ``(n_minutes, 25)``. Finite weights sum to 1. ``None`` uses
+        the fallback envelope and ship spectrum.
 
     Returns
     -------
@@ -48,9 +57,12 @@ def build_labeled_window(background_db, closest_minute, added_energy, seed, n_dr
     if isinstance(seed, bool) or not isinstance(seed, (int, np.integer)):
         raise TypeError("seed must be an integer.")
     n_minutes = background.shape[0]
-    envelope = passage_envelope(n_minutes, closest_minute)
-    spectrum = ship_spectrum()
-    mixture = mix_passage(background, envelope, spectrum, added_energy)
+    if pattern is None:
+        envelope = passage_envelope(n_minutes, closest_minute)
+        spectrum = ship_spectrum()
+        mixture = mix_passage(background, envelope, spectrum, added_energy)
+    else:
+        mixture = mix_pattern(background, pattern, added_energy)
     masked, dropped = mask_random_minutes(
         mixture, np.random.default_rng(int(seed)), n_drop
     )

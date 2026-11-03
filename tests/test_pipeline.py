@@ -38,6 +38,42 @@ def test_entry_point_matches_the_separate_steps():
     assert 0.0 <= share <= 1.0
 
 
+def test_a_separable_pattern_matches_the_fallback():
+    background = np.full((15, 25), 55.0)
+    pattern = np.outer(passage_envelope(15, 8), ship_spectrum())
+    fallback, fallback_share, fallback_meta = build_labeled_window(
+        background, closest_minute=8, added_energy=25.0, seed=4, n_drop=1
+    )
+    mixed, mixed_share, mixed_meta = build_labeled_window(
+        background,
+        closest_minute=8,
+        added_energy=25.0,
+        seed=4,
+        n_drop=1,
+        pattern=pattern,
+    )
+    assert np.allclose(mixed, fallback, equal_nan=True)
+    assert abs(mixed_share - fallback_share) < 1e-12
+    assert mixed_meta == fallback_meta
+
+
+def test_pattern_keeps_the_closest_minute_the_caller_passed():
+    background = np.zeros((15, 25))
+    pattern = np.zeros(background.shape)
+    pattern[0, 0] = 1.0
+    _, share, metadata = build_labeled_window(
+        background,
+        closest_minute=8,
+        added_energy=20.0,
+        seed=1,
+        n_drop=0,
+        pattern=pattern,
+    )
+    assert metadata["closest_minute"] == 8
+    assert metadata["dropped_minutes"] == []
+    assert 0.0 <= share <= 1.0
+
+
 def test_same_seed_blanks_the_same_minutes():
     background = np.full((15, 25), 30.0)
     first, share_first, meta_first = build_labeled_window(
@@ -55,5 +91,7 @@ def test_same_seed_blanks_the_same_minutes():
 
 if __name__ == "__main__":
     test_entry_point_matches_the_separate_steps()
+    test_a_separable_pattern_matches_the_fallback()
+    test_pattern_keeps_the_closest_minute_the_caller_passed()
     test_same_seed_blanks_the_same_minutes()
     print("pipeline checks passed")

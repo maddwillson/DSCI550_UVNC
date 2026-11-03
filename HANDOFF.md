@@ -30,7 +30,7 @@ branch is pushed. Everyone still shares the report and the presentation.
 Call these functions rather than reaching into another person's file:
 
 - Pragya's clean windows should use the same column names as `Test.csv`, plus a site id. Joshua will pass that table to `windows_from_frame`.
-- Madeleine and Levi should call `build_labeled_window`. It returns the masked mixture in decibels, the `share_added_vessel` label, and metadata with the seed, closest-approach minute, and dropped minutes.
+- Madeleine and Levi should call `build_labeled_window`. It returns the masked mixture in decibels, the `share_added_vessel` label, and metadata with the seed, closest-approach minute, and dropped minutes. Pass `pattern` for a `(15, 25)` recording. Leave it out for the fallback envelope and ship spectrum.
 - Madeleine should turn those windows into one feature row each.
 - Levi should take Madeleine's feature matrix and the shares. Hold out whole sites in cross-validation.
 
