@@ -4,6 +4,17 @@ Joshua is building the labeled training windows on `joshua/training-pipeline`.
 Pragya, Madeleine, and Levi can start from the stubs in `src/uvnc/` once this
 branch is pushed. Everyone still shares the report and the presentation.
 
+## Run
+
+From the repo root:
+
+```bash
+python -m pip install -r requirements.txt
+python tests/test_pipeline.py
+```
+
+The other files in `tests/` run the same way. Open `notebooks/labeled_window_demo.ipynb` from the repo root or from `notebooks/`.
+
 ## Data contract
 
 - One window is a NumPy array of shape `(15, 25)`: 15 minute positions by 25 third-octave bands.
