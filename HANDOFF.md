@@ -46,3 +46,13 @@ Call these functions rather than reaching into another person's file:
 - Levi should take Madeleine's feature matrix and the shares. Hold out whole sites in cross-validation.
 
 `score_added_vessel` is Levi's diagnostic column. Its leaderboard weight is zero.
+
+## Notebooks
+
+Keep each function in its module under `src/uvnc/`. The notebook imports that function and holds the plots and trial runs.
+
+- Pragya: `notebooks/cleaning_eda.ipynb`
+- Madeleine: `notebooks/features.ipynb`
+- Levi: `notebooks/models.ipynb`
+
+Joshua's walkthrough stays `notebooks/labeled_window_demo.ipynb`.
