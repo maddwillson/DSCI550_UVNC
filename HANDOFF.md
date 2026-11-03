@@ -12,8 +12,8 @@ branch is pushed. Everyone still shares the report and the presentation.
 - Within each minute, columns run from low frequency to high frequency.
 - Stored values are decibel band levels. A blank cell is missing, so it stays `NaN`. It is not silence and it is not zero energy.
 - Add energy only after `db_to_linear`. The conversion is `10 ** (dB / 10)`. Convert back with `linear_to_db`.
-- The training label `share_added_vessel` will be vessel linear energy divided by total linear energy, over cells that are present. That function is not written yet.
-- `Test.csv` is only for final predictions. Fit scalers, PCA, k-means, and models on training rows.
+- `vessel_share` is the training label `share_added_vessel`. It is the sum of added linear energy divided by the sum of mixture linear energy, over the same observed minute-band cells. A missing minute drops out of both sums. Call `vessel_share` again after `mask_random_minutes`.
+- Build training backgrounds from the South African site files. `Test.csv` is for final predictions and for checking the 375-column layout. Fit scalers, PCA, k-means, and models on training rows.
 
 ## Owners
 
