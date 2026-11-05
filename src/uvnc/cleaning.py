@@ -18,6 +18,7 @@ Notes on the raw data (see the station package's DATA_DICTIONARY.md):
 * Values stay in dB. Nothing is averaged or imputed here.
 """
 
+import hashlib
 import re
 
 import numpy as np
@@ -52,12 +53,22 @@ def site_id_from_name(site):
     return int(match.group(1))
 
 
+def recorder_tag(recorder):
+    """Return a short, stable tag built from the FULL recorder name.
+
+    Recorder names can share a long prefix, so the name is hashed rather than
+    truncated. The same name always gives the same tag.
+    """
+    return hashlib.sha1(str(recorder).encode("utf-8")).hexdigest()[:8]
+
+
 def qc_row_flags(site_frame):
     """Return a boolean DataFrame, one column per screening rule.
 
     ``True`` means the row passes that rule. Rules are kept separate so the
     EDA can report how many rows each one removes.
     """
+    site_frame = site_frame.reset_index(drop=True)
     levels = site_frame[RAW_BANDS].to_numpy(dtype=np.float64)
     finite = np.isfinite(levels).all(axis=1)
     with np.errstate(invalid="ignore"):
@@ -109,6 +120,7 @@ def clean_background_windows(site_frame, stride=N_MINUTES):
     if site_frame.empty:
         return _empty_output()
 
+    site_frame = site_frame.reset_index(drop=True)
     flags = qc_row_flags(site_frame)
     good = site_frame.loc[flags["row_ok"]].sort_values(["recorder", "t"])
     good = good.drop_duplicates(["recorder", "t"])
@@ -138,7 +150,7 @@ def clean_background_windows(site_frame, stride=N_MINUTES):
     block = levels[start_idx[:, None] + offsets[None, :]]  # (n, 15, 25)
     first = good.iloc[start_idx]
     site_ids = first["site"].map(site_id_from_name).to_numpy()
-    recorder_codes = first["recorder"].str.slice(0, 8).to_numpy()
+    recorder_codes = first["recorder"].map(recorder_tag).to_numpy()
     stamps = first["t"].dt.strftime("%Y%m%dT%H%M%S").to_numpy()
 
     out = pd.DataFrame(block.reshape(len(start_idx), -1), columns=WINDOW_COLUMNS)
