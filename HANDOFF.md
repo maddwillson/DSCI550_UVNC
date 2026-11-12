@@ -1,8 +1,9 @@
 # Handoff
 
-Joshua is building the labeled training windows on `joshua/training-pipeline`.
-Pragya, Madeleine, and Levi can start from the stubs in `src/uvnc/` once this
-branch is pushed. Everyone still shares the report and the presentation.
+Labeled training windows are on `joshua/labeled-windows`. That branch includes
+Pragya's cleaning and the script that mixes a vessel into those windows.
+Madeleine and Levi should start there. Everyone still shares the report and
+the presentation.
 
 ## Run
 
@@ -11,9 +12,12 @@ From the repo root:
 ```bash
 python -m pip install -r requirements.txt
 python tests/test_pipeline.py
+python tests/test_labeled_windows.py
+python scripts/build_clean_windows.py --data-dir /path/to/South_African_Real_Acoustics
+python scripts/build_labeled_windows.py
 ```
 
-The other files in `tests/` run the same way. Open `notebooks/labeled_window_demo.ipynb` from the repo root or from `notebooks/`.
+The other files in `tests/` run the same way. The two scripts need the unzipped South African recordings, which stay outside git. Open `notebooks/labeled_window_demo.ipynb` from the repo root or from `notebooks/`.
 
 ## Data contract
 
@@ -44,10 +48,12 @@ One check used fishing clip `40.wav` from `vtuad_wav_fishing.zip` in VTUAD versi
 
 Call these functions rather than reaching into another person's file:
 
-- Pragya's clean windows should use the same column names as `Test.csv`, plus a site id. Joshua will pass that table to `windows_from_frame`.
-- Madeleine and Levi should read `build_labeled_windows` for the training table. It returns mixtures of shape `(n, 15, 25)`, `share_added_vessel` of shape `(n,)`, and one metadata dict per window (`seed`, closest minute, dropped minutes). Each row is one `build_labeled_window` call. Pass a stack of patterns for recordings. Leave patterns out for the fallback envelope and ship spectrum.
-- Madeleine should turn those mixture windows into one feature row each.
-- Levi should take Madeleine's feature matrix and the shares. Hold out whole sites in cross-validation.
+- Pragya's clean windows use the same column names as `Test.csv`, plus a site id.
+- `scripts/build_clean_windows.py` writes `data/clean_windows.parquet`. `scripts/build_labeled_windows.py` reads that file and writes `data/labeled_windows.npz`. Both files stay out of git. Run them locally on the unzipped South African recordings.
+- The `.npz` file holds `mixtures` of shape `(n, 15, 25)`, `shares` of shape `(n,)`, and `site_ids` of shape `(n,)`, in the same row order. The fallback passage is used.
+- `build_labeled_windows` is the function behind that file. It returns mixtures of shape `(n, 15, 25)`, `share_added_vessel` of shape `(n,)`, and one metadata dict per window (`seed`, closest minute, dropped minutes). Pass a stack of patterns for recordings. Leave patterns out for the fallback envelope and ship spectrum.
+- Madeleine should turn `mixtures` into one feature row each.
+- Levi should take Madeleine's feature matrix, `shares`, and `site_ids`. Hold out whole sites in cross-validation.
 
 `score_added_vessel` is Levi's diagnostic column. Its leaderboard weight is zero.
 
