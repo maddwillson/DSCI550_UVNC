@@ -6,6 +6,16 @@ Output: one feature row per window. Fit PCA, k-means, and scalers on
 training windows only.
 """
 
+import numpy as np
+
+#helpers
+def _peak_minus_median(windows):
+    return np.nanmax(windows, axis=1) - np.nanmedian(windows, axis=1)
+
+
+
+
+
 
 def window_features(windows):
     """Turn minute-by-band windows into one feature row each.
@@ -20,6 +30,6 @@ def window_features(windows):
     numpy.ndarray
         Shape ``(n, n_features)``.
     """
-    raise NotImplementedError(
-        "Madeleine: band statistics, PCA, k-means, nearest-neighbor background."
-    )
+
+
+    return _peak_minus_median(windows)
