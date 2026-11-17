@@ -29,7 +29,7 @@ def test_peak_minus_median():
 
 def test_nan_handling():
     window = make_test_window()
-    window[0,11,:] = np.nan # NaN all bands of min 10
+    window[0,9,:] = np.nan # NaN all bands of min 10
 
     result = window_features(window)
     
@@ -42,10 +42,14 @@ def test_broadband_and_nan_cols():
     
     result = window_features(window)
 
-    assert result.shape == (1, 78), "expected 78 feature columns"
+    assert result.shape == (1, 79), "expected 79 feature columns"
     assert np.isclose(result[0, 75], 10.0), "broadband peak minus median should be 10"
     assert result[0, 76] == 8, "ship should peak at minute 8"
     assert result[0, 77] == 1, "one minute was blank"
+
+def test_above_floor():
+    result = window_features(make_test_window())
+    assert np.isclose(result[0, 78], .375), "expected the above floor share to be about 0.375"
 
 
 
@@ -56,5 +60,6 @@ if __name__ == "__main__":
     test_peak_minus_median()
     test_nan_handling()
     test_broadband_and_nan_cols()
-    
+    test_above_floor()
+
     print("features checks were passed")
