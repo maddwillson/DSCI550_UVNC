@@ -43,7 +43,7 @@ One check used fishing clip `40.wav` from `vtuad_wav_fishing.zip` in VTUAD versi
 | --- | --- | --- |
 | Joshua Lee | `units.py`, `windows.py`, then `passage.py`, `mixing.py`, `pipeline.py` | Band-level conversion, window shape, VTUAD conversion, vessel mixing, and a single entry point |
 | Pragya Maruwada | `cleaning.py` | Drop bad rows, cut 15-minute background windows, Spark summaries, EDA |
-| Madeleine Willson | `features.py` | Per-band statistics, broadband level, PCA, k-means, nearest-neighbor background estimate |
+| Madeleine Willson | `features.py` | Per-band statistics, broadband level, PCA, k-means, nearest-neighbor background estimate | 
 | Levi Glaser | `models.py` | Ridge, tree, forest, boosting, site-held-out cross-validation, leaderboard log |
 
 Call these functions rather than reaching into another person's file:
@@ -52,10 +52,9 @@ Call these functions rather than reaching into another person's file:
 - `scripts/build_clean_windows.py` writes `data/clean_windows.parquet`. `scripts/build_labeled_windows.py` reads that file and writes `data/labeled_windows.npz`. Both files stay out of git. Run them locally on the unzipped South African recordings.
 - The `.npz` file holds `mixtures` of shape `(n, 15, 25)`, `shares` of shape `(n,)`, and `site_ids` of shape `(n,)`, in the same row order. The fallback passage is used.
 - `build_labeled_windows` is the function behind that file. It returns mixtures of shape `(n, 15, 25)`, `share_added_vessel` of shape `(n,)`, and one metadata dict per window (`seed`, closest minute, dropped minutes). Pass a stack of patterns for recordings. Leave patterns out for the fallback envelope and ship spectrum.
-- Madeleine should turn `mixtures` into one feature row each.
+- `window_features(mixtures)` returns `(n, 79)`. Column names are in `FEATURE_NAMES`, in order. The 79 features are stateless, so compute them once before cross validation. PCA, k-means, and nearest neighbors will be a separate fit/transform class, inside each fold.
 - Levi should take Madeleine's feature matrix, `shares`, and `site_ids`. Hold out whole sites in cross-validation.
-
-`score_added_vessel` is Levi's diagnostic column. Its leaderboard weight is zero.
+- `score_added_vessel` is Levi's diagnostic column. Its leaderboard weight is zero.
 
 ## Notebooks
 
