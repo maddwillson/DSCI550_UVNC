@@ -50,7 +50,7 @@ Call these functions rather than reaching into another person's file:
 
 - Pragya's clean windows use the same column names as `Test.csv`, plus a site id.
 - `scripts/build_clean_windows.py` writes `data/clean_windows.parquet`. `scripts/build_labeled_windows.py` reads that file and writes `data/labeled_windows.npz`. Both files stay out of git. Run them locally on the unzipped South African recordings.
-- The `.npz` file holds `mixtures` of shape `(n, 15, 25)`, `shares` of shape `(n,)`, and `site_ids` of shape `(n,)`, in the same row order. The fallback passage is used.
+- The `.npz` file holds `mixtures` of shape `(n, 15, 25)`, `shares` of shape `(n,)`, and `site_ids` of shape `(n,)`, in the same row order. It also holds `closest_minutes`, `added_energies`, `seeds`, and `n_drops`, one value per window. The fallback passage is used. Each window gets its own ship peak, its own loudness, and either no hidden minute or one hidden minute. The hidden minute is drawn in the script. It is not copied from which minute `Test.csv` leaves blank.
 - `build_labeled_windows` is the function behind that file. It returns mixtures of shape `(n, 15, 25)`, `share_added_vessel` of shape `(n,)`, and one metadata dict per window (`seed`, closest minute, dropped minutes). Pass a stack of patterns for recordings. Leave patterns out for the fallback envelope and ship spectrum.
 - Madeleine should turn `mixtures` into one feature row each.
 - Levi should take Madeleine's feature matrix, `shares`, and `site_ids`. Hold out whole sites in cross-validation.
