@@ -15,6 +15,8 @@ python tests/test_pipeline.py
 python tests/test_labeled_windows.py
 python scripts/build_clean_windows.py --data-dir /path/to/South_African_Real_Acoustics
 python scripts/build_labeled_windows.py
+python scripts/train_models.py
+python tests/test_models.py
 ```
 
 The other files in `tests/` run the same way. The two scripts need the unzipped South African recordings, which stay outside git. Open `notebooks/labeled_window_demo.ipynb` from the repo root or from `notebooks/`.
@@ -55,9 +57,13 @@ Call these functions rather than reaching into another person's file:
 - `window_features(mixtures)` returns `(n, 79)`, names in `FEATURE_NAMES`. Stateless, so compute once. Also works on `Test.csv`.
 - `FittedFeatures` (PCA, k-means) and `BackgroundNeighbors` (expected and excess broadband peak) are fit/transform classes. Fit both inside each fold. `BackgroundNeighbors` fits on the matching rows of `clean_windows.parquet` and takes `site_ids` in `transform` (leave it out for `Test.csv`).
 - The broadband peak is non-linear with the share, so tree models should beat ridge.
-- Levi should take Madeleine's feature matrix, `shares`, and `site_ids`. Hold out whole sites in cross-validation.
+- `scripts/train_models.py` reads `data/labeled_windows.npz` and `data/clean_windows.parquet`. Both must come from the same build, in the same row order. It writes the score tables under `reports/`, `submissions/submission_<model>.csv`, and one line in `submissions/leaderboard_log.csv`.
+- `fit_site_held_out(features, shares, site_ids, windows=mixtures, backgrounds=backgrounds)` holds out one site at a time. It fits ridge, a tree, a forest, and boosting on the other sites, with `FittedFeatures` and `BackgroundNeighbors` fit inside each fold. It returns the score table, the error per site, one held-out prediction per window, and a final fit on all sites.
+- Every training row is used by default. `--max-per-site N` caps each training site, and scored worse in `notebooks/models.ipynb`. Every row of the held-out site is always scored.
+- `predict_share(result, window_features(windows), windows)` scores new windows such as `Test.csv`. `make_submission` writes the Zindi file. `log_submission` adds a line to the leaderboard log. Fill in `public_score` by hand once Zindi shows it.
+- Scores in `reports/` are on our own mixtures. They are not leaderboard scores.
 
-`score_added_vessel` is Levi's diagnostic column. Its leaderboard weight is zero.
+`score_added_vessel` is Levi's diagnostic column. Its leaderboard weight is zero. It is set to the predicted share. Offline, its ROC-AUC compares each held-out mixture with its own background.
 
 ## Notebooks
 
