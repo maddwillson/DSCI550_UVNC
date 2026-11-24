@@ -1,0 +1,2 @@
+date,file,model,cv_score,cv_site_mean_score,public_score,notes
+2026-11-23,submission_boosting.csv,boosting,0.9060,0.9093,,"90 features, every training row"
